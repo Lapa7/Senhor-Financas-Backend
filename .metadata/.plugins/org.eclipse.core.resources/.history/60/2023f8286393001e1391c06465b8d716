@@ -1,0 +1,109 @@
+package model.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+import model.vo.UsuarioVO;
+
+public class UsuarioDAO {
+
+	public boolean verificarUsuarioCadastradoDAO(UsuarioVO usuarioVO) {
+		Connection conn = Banco.getConnection();
+		Statement stmt = Banco.getStatement(conn);
+		ResultSet resultado = null;
+		boolean retorno = false;
+		String query = "SELECT cpf FROM usuario WHERE cpf = '" + usuarioVO.getCpf() + "' ";
+		
+		try {
+			resultado = stmt.executeQuery(query);
+			if(resultado.next()) {
+				retorno = true;
+			}
+		} catch (SQLException erro) {
+			System.out.println("\nErro ao executar a query do método verificarUsuarioCadastradoDAO");
+			System.out.println("Erro: " + erro.getMessage());
+		} finally {
+			Banco.closeResultSet(resultado);
+			Banco.closeStatement(stmt);
+			Banco.closeConnection(conn);
+		}
+		return retorno;
+	}
+	
+	public UsuarioVO verificarLoginDAO(UsuarioVO usuarioVO) {
+	    Connection conn = Banco.getConnection();
+	    PreparedStatement pstmt = null;
+	    ResultSet resultado = null;
+	    UsuarioVO usuario = new UsuarioVO();
+
+	    String query = "SELECT * FROM usuario WHERE login = ? AND senha = ?";
+	    
+	    try {
+	        pstmt = conn.prepareStatement(query);
+	        pstmt.setString(1, usuarioVO.getLogin());
+	        pstmt.setString(2, usuarioVO.getSenha());
+	        resultado = pstmt.executeQuery();
+
+	        if (resultado.next()) {
+	            usuario.setIdusuario(resultado.getInt("idusuario"));
+	            usuario.setNome(resultado.getString("nome"));
+	            usuario.setCpf(resultado.getString("cpf"));
+	            usuario.setEmail(resultado.getString("email"));
+	            usuario.setLogin(resultado.getString("login"));
+	            usuario.setLogin(resultado.getString("senha"));
+	            
+	            String dataNascimentoStr = resultado.getString("datanascimento");
+	            LocalDate dataNascimento = LocalDate.parse(dataNascimentoStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+	            usuario.setDatanascimento(dataNascimento);
+	        }
+
+	    } catch (SQLException erro) {
+	        System.out.println("\nErro ao executar a query do método verificarLoginDAO");
+	        System.out.println("Erro: " + erro.getMessage());
+	    } finally {
+	        Banco.closeResultSet(resultado);
+	        Banco.closeStatement(pstmt);
+	        Banco.closeConnection(conn);
+	    }
+
+	    return usuario;
+	}
+
+	
+	public UsuarioVO cadastrarUsuarioDAO(UsuarioVO usuarioVO) {
+	    String query = "INSERT INTO usuario (nome, cpf, email, datanascimento, login, senha) VALUES (?, ?, ?, ?, ?, ?)";
+	    Connection conn = Banco.getConnection();
+	    PreparedStatement pstmt = Banco.getPreparedStatement(conn, query, Statement.RETURN_GENERATED_KEYS);
+
+	    try {
+	        pstmt.setString(1, usuarioVO.getNome());
+	        pstmt.setString(2, usuarioVO.getCpf());
+	        pstmt.setString(3, usuarioVO.getEmail());
+	        pstmt.setObject(4, usuarioVO.getDatanascimento());
+	        pstmt.setString(5, usuarioVO.getLogin());
+	        pstmt.setString(6, usuarioVO.getSenha());
+
+	        int affectedRows = pstmt.executeUpdate();
+	        if (affectedRows > 0) {
+	            ResultSet resultado = pstmt.getGeneratedKeys();
+	            if (resultado.next()) {
+	                usuarioVO.setIdusuario(resultado.getInt(1)); 
+	            }
+	        }
+	    } catch (SQLException erro) {
+	        System.out.println("\nErro ao executar a query do método cadastrarUsuarioDAO");
+	        System.out.println("Erro: " + erro.getMessage());
+	    } finally {
+	        Banco.closeStatement(pstmt);
+	        Banco.closeConnection(conn);
+	    }
+	    return usuarioVO;
+	}
+
+
+}
